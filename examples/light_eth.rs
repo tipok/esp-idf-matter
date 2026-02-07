@@ -25,13 +25,18 @@ mod example {
 
     use alloc::sync::Arc;
 
+    use embassy_sync::blocking_mutex::raw::NoopRawMutex;
+
     use esp_idf_matter::eth::EspEthMatterStack;
     use esp_idf_matter::init_async_io;
+    use esp_idf_matter::matter::crypto::{default_crypto, Crypto};
     use esp_idf_matter::matter::dm::clusters::desc::{ClusterHandler as _, DescHandler};
     use esp_idf_matter::matter::dm::clusters::gen_diag::InterfaceTypeEnum;
     use esp_idf_matter::matter::dm::clusters::on_off::test::TestOnOffDeviceLogic;
     use esp_idf_matter::matter::dm::clusters::on_off::{self, OnOffHandler, OnOffHooks};
-    use esp_idf_matter::matter::dm::devices::test::{TEST_DEV_ATT, TEST_DEV_COMM, TEST_DEV_DET};
+    use esp_idf_matter::matter::dm::devices::test::{
+        DAC_PRIVKEY, TEST_DEV_ATT, TEST_DEV_COMM, TEST_DEV_DET,
+    };
     use esp_idf_matter::matter::dm::devices::DEV_TYPE_ON_OFF_LIGHT;
     use esp_idf_matter::matter::dm::{Async, Dataver, EmptyHandler, Endpoint, EpClMatcher, Node};
     use esp_idf_matter::matter::utils::init::InitMaybeUninit;
@@ -136,10 +141,15 @@ mod example {
 
         wifi.wait_netif_up().await?;
 
+        // Create the default crypto provider using the STD CSPRNG provided by the `rand` crate
+        let crypto = default_crypto::<NoopRawMutex, _>(rand::thread_rng(), DAC_PRIVKEY);
+
+        let mut weak_rand = crypto.weak_rand()?;
+
         // Our "light" on-off cluster.
         // It will toggle the light state every 5 seconds
         let on_off = OnOffHandler::new_standalone(
-            Dataver::new_rand(stack.matter().rand()),
+            Dataver::new_rand(&mut weak_rand),
             LIGHT_ENDPOINT_ID,
             TestOnOffDeviceLogic::new(true),
         );
@@ -159,14 +169,17 @@ mod example {
             // Just use the one that `rs-matter` provides out of the box
             .chain(
                 EpClMatcher::new(Some(LIGHT_ENDPOINT_ID), Some(DescHandler::CLUSTER.id)),
-                Async(DescHandler::new(Dataver::new_rand(stack.matter().rand())).adapt()),
+                Async(DescHandler::new(Dataver::new_rand(&mut weak_rand)).adapt()),
             );
 
         // Create the persister & load any previously saved state
         // `EspKvBlobStore` saves to a user-supplied ESP-IDF NVS partition
         // However, for this demo and for simplicity, we use a dummy persister that does nothing
         let persist = stack
-            .create_persist_with_comm_window(rs_matter_stack::persist::DummyKvBlobStore)
+            .create_persist_with_comm_window(
+                &crypto,
+                esp_idf_matter::stack::persist::DummyKvBlobStore,
+            )
             .await?;
 
         // Run the Matter stack with our handler
@@ -182,6 +195,8 @@ mod example {
             BuiltinMdns,
             // The Matter stack needs a persister to store its state
             &persist,
+            // The crypto provider
+            &crypto,
             // Our `AsyncHandler` + `AsyncMetadata` impl
             (NODE, handler),
             // No user future to run

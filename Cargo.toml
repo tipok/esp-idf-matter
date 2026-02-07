@@ -37,8 +37,8 @@ debug = true
 opt-level = "z"
 
 [features]
-#default = ["std", "log"]
-default = ["std", "async-io-mini", "log"]
+#default = ["std", "log", "rustcrypto"]
+default = ["std", "async-io-mini", "log", "rustcrypto"]
 
 # Sizing
 
@@ -152,6 +152,9 @@ max-exchanges-per-session-3 = ["rs-matter-stack/max-exchanges-per-session-3"]
 async-io-mini = ["std", "edge-nal-std/async-io-mini"]
 std = ["esp-idf-svc/std", "edge-nal-std", "rs-matter-stack/std", "rs-matter-stack/log"]
 log = ["rs-matter-stack/log"]
+rustcrypto = ["rs-matter-stack/rustcrypto"]
+mbedtls = ["rs-matter-stack/mbedtls"]
+
 # Enable only when building the examples
 examples = [
     "default", 
@@ -169,7 +172,7 @@ embassy-sync = "0.7"
 embassy-time = "0.4"
 esp-idf-svc = { version = "0.51", default-features = false, features = ["alloc", "embassy-time-driver", "experimental"] }
 embedded-svc = { version = "0.28", default-features = false }
-rs-matter-stack = { version = "0.1", default-features = false, features = ["rustcrypto"] }
+rs-matter-stack = { version = "0.1", default-features = false }
 async-io = { version = "=2.0.0", default-features = false } # Workaround for https://github.com/smol-rs/async-lock/issues/84
 edge-nal = "0.5"
 edge-nal-std = { version = "0.5", default-features = false, optional = true }
@@ -181,6 +184,7 @@ embuild = "0.33"
 embassy-time-queue-utils = { version = "0.3", features = ["generic-queue-64"] }
 static_cell = "2.1"
 anyhow = "1"
+rand = "0.8"
 
 [[example]]
 name = "light_wifi"

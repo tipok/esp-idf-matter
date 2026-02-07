@@ -18,6 +18,7 @@ use esp_idf_svc::thread::{
 
 use log::{error, info, warn};
 
+use rs_matter_stack::matter::crypto::Crypto;
 use rs_matter_stack::matter::dm::clusters::gen_diag::InterfaceTypeEnum;
 use rs_matter_stack::matter::dm::clusters::net_comm::{
     NetCtl, NetCtlError, NetworkScanInfo, NetworkType, WirelessCreds,
@@ -28,6 +29,7 @@ use rs_matter_stack::matter::dm::clusters::thread_diag::{
 };
 use rs_matter_stack::matter::dm::clusters::wifi_diag::WirelessDiag;
 use rs_matter_stack::matter::dm::networks::NetChangeNotif;
+use rs_matter_stack::matter::dm::ChangeNotify;
 use rs_matter_stack::matter::error::{Error, ErrorCode};
 use rs_matter_stack::matter::transport::network::mdns::Service;
 use rs_matter_stack::matter::utils::storage::Vec;
@@ -421,9 +423,11 @@ where
         }
     }
 
-    pub async fn run(
+    pub async fn run<C: Crypto>(
         &mut self,
         matter: &Matter<'_>,
+        crypto: C,
+        notify: &dyn ChangeNotify,
         _ipv6: core::net::Ipv6Addr,
     ) -> Result<(), Error> {
         let mut ieee_eui64 = [0; 8];
@@ -481,7 +485,7 @@ where
             matter.wait_mdns().await;
 
             let mut services = Vec::<_, MAX_MATTER_SERVICES>::new();
-            matter.mdns_services(|service| {
+            matter.mdns_services(&crypto, notify, |service| {
                 if services.push(service).is_err() {
                     error!("Too many mDNS services registered, max is {MAX_MATTER_SERVICES}");
 
@@ -578,9 +582,11 @@ impl<M> Mdns for EspMatterThreadSrp<'_, '_, M>
 where
     M: NetifMode,
 {
-    async fn run<U>(
+    async fn run<C, U>(
         &mut self,
         matter: &Matter<'_>,
+        crypto: C,
+        notify: &dyn ChangeNotify,
         _udp: U,
         _mac: &[u8],
         _ipv4: core::net::Ipv4Addr,
@@ -588,9 +594,10 @@ where
         _interface: u32,
     ) -> Result<(), Error>
     where
+        C: Crypto,
         U: edge_nal::UdpBind,
     {
-        Self::run(self, matter, ipv6).await
+        Self::run(self, matter, crypto, notify, ipv6).await
     }
 }
 
