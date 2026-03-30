@@ -33,6 +33,7 @@ use rs_matter_stack::matter::dm::ChangeNotify;
 use rs_matter_stack::matter::error::{Error, ErrorCode};
 use rs_matter_stack::matter::transport::network::mdns::Service;
 use rs_matter_stack::matter::utils::storage::Vec;
+use rs_matter_stack::matter::utils::sync::DynBase;
 use rs_matter_stack::matter::{Matter, MatterMdnsService};
 use rs_matter_stack::mdns::Mdns;
 
@@ -291,6 +292,8 @@ where
         Ok(self.operational.lock(|operational| operational.get()))
     }
 }
+
+impl<M> DynBase for EspMatterThreadCtl<'_, '_, M> where M: NetifMode {}
 
 // TODO
 impl<M> ThreadDiag for EspMatterThreadCtl<'_, '_, M>

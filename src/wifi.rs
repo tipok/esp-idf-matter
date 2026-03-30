@@ -29,6 +29,7 @@ use rs_matter_stack::matter::dm::clusters::wifi_diag::{
 use rs_matter_stack::matter::dm::networks::NetChangeNotif;
 use rs_matter_stack::matter::error::{Error, ErrorCode};
 use rs_matter_stack::matter::tlv::Nullable;
+use rs_matter_stack::matter::utils::sync::DynBase;
 
 use crate::error::to_net_error;
 use crate::netif::{self, EspNetifAccess};
@@ -240,6 +241,8 @@ impl WirelessDiag for EspMatterWifiCtl<'_> {
         Ok(self.operational.lock(|operational| operational.get()))
     }
 }
+
+impl DynBase for EspMatterWifiCtl<'_> {}
 
 // TODO
 impl WifiDiag for EspMatterWifiCtl<'_> {
