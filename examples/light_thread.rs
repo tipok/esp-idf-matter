@@ -200,7 +200,6 @@ mod example {
 
     /// The Matter Light device Node
     const NODE: Node = Node {
-        id: 0,
         endpoints: &[
             EspThreadMatterStack::<0, ()>::root_endpoint(),
             Endpoint {

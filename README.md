@@ -212,7 +212,6 @@ mod example {
 
     /// The Matter Light device Node
     const NODE: Node = Node {
-        id: 0,
         endpoints: &[
             EspWifiMatterStack::<0, ()>::root_endpoint(),
             Endpoint {
