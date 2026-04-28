@@ -33,9 +33,9 @@ mod example {
     use embassy_futures::select::{select, Either};
     use esp_idf_matter::init_async_io;
     use esp_idf_matter::matter::crypto::{default_crypto, Crypto};
+    use esp_idf_matter::matter::dm::clusters::app::on_off::test::TestOnOffDeviceLogic;
+    use esp_idf_matter::matter::dm::clusters::app::on_off::{self, OnOffHandler, OnOffHooks};
     use esp_idf_matter::matter::dm::clusters::desc::{self, ClusterHandler as _, DescHandler};
-    use esp_idf_matter::matter::dm::clusters::on_off::test::TestOnOffDeviceLogic;
-    use esp_idf_matter::matter::dm::clusters::on_off::{self, OnOffHandler, OnOffHooks};
     use esp_idf_matter::matter::dm::devices::test::{
         DAC_PRIVKEY, TEST_DEV_ATT, TEST_DEV_COMM, TEST_DEV_DET,
     };
