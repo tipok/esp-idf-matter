@@ -41,6 +41,7 @@ mod example {
     use esp_idf_matter::matter::utils::init::InitMaybeUninit;
     use esp_idf_matter::matter::{clusters, devices};
     use esp_idf_matter::netif::{EspMatterNetStack, EspMatterNetif};
+    use esp_idf_matter::stack::matter::transport::network::mdns::builtin::BuiltinMdnsResponder;
 
     use esp_idf_svc::eventloop::EspSystemEventLoop;
     use esp_idf_svc::hal::peripherals::Peripherals;
@@ -55,7 +56,6 @@ mod example {
 
     use log::{error, info};
 
-    use rs_matter_stack::mdns::BuiltinMdns;
     use static_cell::StaticCell;
 
     extern crate alloc;
@@ -112,6 +112,8 @@ mod example {
                 TEST_DEV_COMM,
                 &TEST_DEV_ATT,
             ));
+
+        let mut mdns = MDNS.uninit().init_with(BuiltinMdnsResponder::init());
 
         // Take some generic ESP-IDF stuff we'll need later
         let sysloop = EspSystemEventLoop::take()?;
@@ -190,7 +192,7 @@ mod example {
             // we are using a Wifi STA - provide the Wifi netif here
             EspMatterNetif::new(wifi.wifi().sta_netif(), InterfaceTypeEnum::WiFi, sysloop),
             // The Matter stack needs an mDNS service to advertise itself
-            BuiltinMdns,
+            &mut mdns,
             // The crypto provider
             &crypto,
             // Our `AsyncHandler` + `AsyncMetadata` impl
@@ -210,6 +212,9 @@ mod example {
     /// The Matter stack is allocated statically to avoid
     /// program stack blowups.
     static MATTER_STACK: StaticCell<EspEthMatterStack<BUMP_SIZE, ()>> = StaticCell::new();
+
+    /// The mDNS responder is also allocated statically for the same reason.
+    static MDNS: StaticCell<BuiltinMdnsResponder> = StaticCell::new();
 
     /// Endpoint 0 (the root endpoint) always runs
     /// the hidden Matter system clusters, so we pick ID=1

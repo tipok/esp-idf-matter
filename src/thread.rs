@@ -30,16 +30,20 @@ use rs_matter_stack::matter::dm::clusters::thread_diag::{
 use rs_matter_stack::matter::dm::clusters::wifi_diag::WirelessDiag;
 use rs_matter_stack::matter::dm::networks::NetChangeNotif;
 use rs_matter_stack::matter::error::{Error, ErrorCode};
-use rs_matter_stack::matter::transport::network::mdns::Service;
+use rs_matter_stack::matter::fabric::MAX_FABRICS;
+use rs_matter_stack::matter::transport::network::mdns::MatterService;
+use rs_matter_stack::matter::utils::init::{init, Init};
 use rs_matter_stack::matter::utils::storage::Vec;
 use rs_matter_stack::matter::utils::sync::DynBase;
-use rs_matter_stack::matter::{Matter, MatterMdnsService};
+use rs_matter_stack::matter::Matter;
 use rs_matter_stack::mdns::Mdns;
 
 use crate::error::to_net_error;
 use crate::netif::{self, EspNetifAccess};
 
 extern crate alloc;
+
+const OT_MDNS_BUF_SZ: usize = 256;
 
 /// This type provides the ESP-IDF Thread implementation of the Matter `NetCtl`, `NetChangeNotif`, `WirelessDiag`, and `ThreadDiag` traits
 pub struct EspMatterThreadCtl<'a, 'd, M>
@@ -56,7 +60,7 @@ where
     M: NetifMode,
 {
     /// Create a new instance of the `EspMatterThreadCtl` type.
-    pub const fn new(thread: &'a EspThread<'d, M>, sysloop: EspSystemEventLoop) -> Self {
+    pub fn new(thread: &'a EspThread<'d, M>, sysloop: EspSystemEventLoop) -> Self {
         Self {
             thread: Mutex::new(thread),
             operational: blocking_mutex::Mutex::new(Cell::new(false)),
@@ -403,14 +407,15 @@ impl<T: NetifMode> EspNetifAccess for EspMatterThreadCtl<'_, '_, T> {
     }
 }
 
-const MAX_MATTER_SERVICES: usize = 3;
+const MAX_MATTER_SERVICES: usize = MAX_FABRICS + 1;
 
 pub struct EspMatterThreadSrp<'a, 'd, M>
 where
     M: NetifMode,
 {
     thread: &'a EspThread<'d, M>,
-    services: Vec<(MatterMdnsService, SrpServiceSlot), MAX_MATTER_SERVICES>,
+    services: Vec<(MatterService, SrpServiceSlot), MAX_MATTER_SERVICES>,
+    mdns_buf: Vec<u8, OT_MDNS_BUF_SZ>,
 }
 
 impl<'a, 'd, M> EspMatterThreadSrp<'a, 'd, M>
@@ -422,7 +427,17 @@ where
         Self {
             thread,
             services: Vec::new(),
+            mdns_buf: Vec::new(),
         }
+    }
+
+    /// Create a new instance of the `EspMatterThreadSrp` type.
+    pub fn init(thread: &'a EspThread<'d, M>) -> impl Init<Self> {
+        init!(Self {
+            thread,
+            services <- Vec::init(),
+            mdns_buf <- Vec::init(),
+        })
     }
 
     pub async fn run(
@@ -506,7 +521,7 @@ where
     fn update_services(
         &mut self,
         matter: &Matter,
-        services: &[MatterMdnsService],
+        services: &[MatterService],
     ) -> Result<(), Error> {
         for service in services {
             if !self.services.iter().any(|(s, _)| s == service) {
@@ -542,31 +557,33 @@ where
     fn register(
         &mut self,
         matter: &Matter,
-        service: &MatterMdnsService,
+        service: &MatterService,
     ) -> Result<SrpServiceSlot, Error> {
-        Service::call_with(service, matter.dev_det(), matter.port(), |service| {
-            let slot = self
-                .thread
-                .srp_add_service(&SrpService {
-                    name: service.service_protocol,
-                    instance_name: service.name,
-                    port: service.port,
-                    subtype_labels: service.service_subtypes.iter().cloned(),
-                    txt_entries: service
-                        .txt_kvs
-                        .iter()
-                        .cloned()
-                        .filter(|(k, _)| !k.is_empty())
-                        .map(|(k, v)| (k, v.as_bytes())),
-                    priority: 0,
-                    weight: 0,
-                    lease_secs: 0,
-                    key_lease_secs: 0,
-                })
-                .map_err(to_net_error)?;
+        self.mdns_buf.resize_default(OT_MDNS_BUF_SZ).unwrap();
 
-            Ok(slot)
-        })
+        let (service, _) = service.service(matter.dev_det(), matter.port(), &mut self.mdns_buf)?;
+        let service = core::mem::ManuallyDrop::new(service);
+
+        // TODO:
+        // Remove `ManuallyDrop` by removing the `'a` lifetime from the signature of the function below:
+        // pub fn srp_add_service<'a, SI, TI>(&self, service: &'a SrpService<'a, SI, TI>)
+        //                                                      ^- remove this lifetime
+
+        let srp_service = core::mem::ManuallyDrop::new(SrpService {
+            name: service.service_protocol,
+            instance_name: service.name,
+            port: service.port,
+            subtype_labels: service.service_subtypes.clone(),
+            txt_entries: service.txt_kvs.clone().map(|(k, v)| (k, v.as_bytes())),
+            priority: 0,
+            weight: 0,
+            lease_secs: 0,
+            key_lease_secs: 0,
+        });
+
+        self.thread
+            .srp_add_service(&srp_service)
+            .map_err(to_net_error)
     }
 
     fn deregister(&mut self, slot: SrpServiceSlot) -> Result<(), Error> {

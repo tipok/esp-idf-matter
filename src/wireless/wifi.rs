@@ -9,7 +9,8 @@ use rs_matter_stack::matter::dm::clusters::gen_diag::InterfaceTypeEnum;
 use rs_matter_stack::matter::dm::networks::wireless::Wifi;
 use rs_matter_stack::matter::error::Error;
 
-use rs_matter_stack::mdns::{BuiltinMdns, Mdns};
+use rs_matter_stack::matter::transport::network::mdns::builtin::BuiltinMdnsResponder;
+use rs_matter_stack::mdns::Mdns;
 use rs_matter_stack::network::{Embedding, Network};
 use rs_matter_stack::wireless::{Gatt, GattTask, WifiCoex, WifiCoexTask, WifiTask};
 
@@ -24,7 +25,7 @@ use super::{EspWirelessMatterStack, GATTS_APP_ID};
 pub type EspWifiMatterStack<'a, const B: usize, E> = EspWirelessMatterStack<'a, B, Wifi, E>;
 
 /// A `Wifi` trait implementation via ESP-IDF's Wifi/BT modem
-pub struct EspMatterWifi<'a, 'd, M = BuiltinMdns> {
+pub struct EspMatterWifi<'a, 'd, M = BuiltinMdnsResponder> {
     modem: Modem<'d>,
     sysloop: EspSystemEventLoop,
     timer: EspTaskTimerService,
@@ -33,7 +34,7 @@ pub struct EspMatterWifi<'a, 'd, M = BuiltinMdns> {
     ble_context: &'a EspBtpGattContext,
 }
 
-impl<'a, 'd> EspMatterWifi<'a, 'd, BuiltinMdns> {
+impl<'a, 'd> EspMatterWifi<'a, 'd, BuiltinMdnsResponder> {
     /// Create a new instance of the `EspMatterWifi` type .
     pub fn new_with_builtin_mdns<const B: usize, E>(
         modem: Modem<'d>,
@@ -45,7 +46,14 @@ impl<'a, 'd> EspMatterWifi<'a, 'd, BuiltinMdns> {
     where
         E: Embedding + 'static,
     {
-        Self::new(modem, sysloop, timer, nvs, stack, BuiltinMdns)
+        Self::new(
+            modem,
+            sysloop,
+            timer,
+            nvs,
+            stack,
+            BuiltinMdnsResponder::new(),
+        )
     }
 }
 
