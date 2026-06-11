@@ -41,7 +41,7 @@ mod example {
     use esp_idf_matter::matter::utils::init::InitMaybeUninit;
     use esp_idf_matter::matter::{clusters, devices};
     use esp_idf_matter::netif::{EspMatterNetStack, EspMatterNetif};
-    use esp_idf_matter::stack::matter::transport::network::mdns::builtin::BuiltinMdnsResponder;
+    use esp_idf_matter::stack::matter::transport::network::mdns::builtin::BuiltinMdns;
 
     use esp_idf_svc::eventloop::EspSystemEventLoop;
     use esp_idf_svc::hal::peripherals::Peripherals;
@@ -111,7 +111,7 @@ mod example {
             &TEST_DEV_ATT,
         ));
 
-        let mut mdns = MDNS.uninit().init_with(BuiltinMdnsResponder::init());
+        let mut mdns = MDNS.uninit().init_with(BuiltinMdns::init());
 
         // Take some generic ESP-IDF stuff we'll need later
         let sysloop = EspSystemEventLoop::take()?;
@@ -212,7 +212,7 @@ mod example {
     static MATTER_STACK: StaticCell<EspEthMatterStack<BUMP_SIZE, ()>> = StaticCell::new();
 
     /// The mDNS responder is also allocated statically for the same reason.
-    static MDNS: StaticCell<BuiltinMdnsResponder> = StaticCell::new();
+    static MDNS: StaticCell<BuiltinMdns> = StaticCell::new();
 
     /// Endpoint 0 (the root endpoint) always runs
     /// the hidden Matter system clusters, so we pick ID=1
