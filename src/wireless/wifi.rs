@@ -111,6 +111,15 @@ impl Gatt for EspMatterWifi<'_, '_> {
 }
 
 impl rs_matter_stack::wireless::Wifi for EspMatterWifi<'_, '_> {
+    // The operational task receives `&wifi` (a `&EspMatterWifiCtl`), so the chain
+    // net-ctl type — and hence this associated type — is `&'a EspMatterWifiCtl<'a>`.
+    // Naming it here lets the commissioning and operational handler chains share one
+    // `WirelessNetCtl` type (single monomorphization).
+    type NetCtl<'a>
+        = &'a EspMatterWifiCtl<'a>
+    where
+        Self: 'a;
+
     async fn run<A>(&mut self, mut task: A) -> Result<(), Error>
     where
         A: WifiTask,

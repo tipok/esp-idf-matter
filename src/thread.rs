@@ -31,7 +31,7 @@ use rs_matter_stack::matter::dm::clusters::wifi_diag::WirelessDiag;
 use rs_matter_stack::matter::dm::networks::NetChangeNotif;
 use rs_matter_stack::matter::error::{Error, ErrorCode};
 use rs_matter_stack::matter::fabric::MAX_FABRICS;
-use rs_matter_stack::matter::transport::network::mdns::MatterService;
+use rs_matter_stack::matter::transport::network::MatterLocalService;
 use rs_matter_stack::matter::utils::init::{init, Init};
 use rs_matter_stack::matter::utils::storage::Vec;
 use rs_matter_stack::matter::utils::sync::DynBase;
@@ -409,12 +409,14 @@ impl<T: NetifMode> EspNetifAccess for EspMatterThreadCtl<'_, '_, T> {
 
 const MAX_MATTER_SERVICES: usize = MAX_FABRICS + 1;
 
+// TODO: Does not yet implement the Resolve and Browse loops.
+// These need support by the upstream OpenThread `esp-idf-svc` APIs which do not expose DNS yet.
 pub struct EspMatterThreadSrp<'a, 'd, M>
 where
     M: NetifMode,
 {
     thread: &'a EspThread<'d, M>,
-    services: Vec<(MatterService, SrpServiceSlot), MAX_MATTER_SERVICES>,
+    services: Vec<(MatterLocalService, SrpServiceSlot), MAX_MATTER_SERVICES>,
     mdns_buf: Vec<u8, OT_MDNS_BUF_SZ>,
 }
 
@@ -497,7 +499,7 @@ where
         }
 
         loop {
-            matter.wait_mdns().await;
+            matter.transport().wait_mdns().await;
 
             let mut services = Vec::<_, MAX_MATTER_SERVICES>::new();
             matter.mdns_services(|service| {
@@ -521,7 +523,7 @@ where
     fn update_services(
         &mut self,
         matter: &Matter,
-        services: &[MatterService],
+        services: &[MatterLocalService],
     ) -> Result<(), Error> {
         for service in services {
             if !self.services.iter().any(|(s, _)| s == service) {
@@ -557,7 +559,7 @@ where
     fn register(
         &mut self,
         matter: &Matter,
-        service: &MatterService,
+        service: &MatterLocalService,
     ) -> Result<SrpServiceSlot, Error> {
         self.mdns_buf.resize_default(OT_MDNS_BUF_SZ).unwrap();
 

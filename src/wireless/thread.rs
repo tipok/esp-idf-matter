@@ -5,7 +5,7 @@ use esp_idf_svc::eventloop::EspSystemEventLoop;
 use esp_idf_svc::hal::modem::Modem;
 use esp_idf_svc::io::vfs::MountedEventfs;
 use esp_idf_svc::nvs::EspDefaultNvsPartition;
-use esp_idf_svc::thread::EspThread;
+use esp_idf_svc::thread::{EspThread, Node};
 
 use log::info;
 
@@ -91,6 +91,16 @@ impl Gatt for EspMatterThread<'_, '_> {
 }
 
 impl rs_matter_stack::wireless::Thread for EspMatterThread<'_, '_> {
+    // The operational task receives `&net_ctl` (a `&EspMatterThreadCtl`) built from a
+    // locally-created `EspThread<'_, Node>`, so the chain net-ctl type — and hence this
+    // associated type — is `&'a EspMatterThreadCtl<'a, 'a, Node>`. Naming it here lets
+    // the commissioning and operational handler chains share one `WirelessNetCtl` type
+    // (single monomorphization).
+    type NetCtl<'a>
+        = &'a EspMatterThreadCtl<'a, 'a, Node>
+    where
+        Self: 'a;
+
     async fn run<A>(&mut self, mut task: A) -> Result<(), Error>
     where
         A: ThreadTask,
