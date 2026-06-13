@@ -5,6 +5,10 @@ use core::borrow::Borrow;
 use core::future::Future;
 use core::net::{Ipv4Addr, Ipv6Addr};
 
+// `EspRawMutex` (from `esp-idf-hal`) implements embassy-sync 0.7's `RawMutex`,
+// so the embassy-sync `Mutex` parameterized with it must come from 0.7 too.
+use embassy_sync_07 as embassy_sync;
+
 use embassy_sync::blocking_mutex;
 
 use esp_idf_svc::eventloop::EspSystemEventLoop;
@@ -233,8 +237,11 @@ pub mod utils {
     use embassy_futures::select::select;
     use embassy_time::{Duration, Timer};
 
+    // This `Notification` is one of rs-matter's, hence parameterized with a
+    // `RawMutex` from embassy-sync 0.8 (rather than the 0.7 `EspRawMutex`).
+    use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
+
     use esp_idf_svc::eventloop::EspSystemEventLoop;
-    use esp_idf_svc::hal::task::embassy_sync::EspRawMutex;
     use esp_idf_svc::handle::RawHandle;
     use esp_idf_svc::netif::{EspNetif, IpEvent};
     use esp_idf_svc::sys::{
@@ -322,7 +329,7 @@ pub mod utils {
     pub async fn wait_any_conf_change(sysloop: &EspSystemEventLoop) -> Result<(), EspError> {
         const TIMEOUT_PERIOD_SECS: u8 = 5;
 
-        let notification = Arc::new(Notification::<EspRawMutex>::new());
+        let notification = Arc::new(Notification::<CriticalSectionRawMutex>::new());
 
         let _subscription = {
             let notification = notification.clone();
