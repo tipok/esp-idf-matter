@@ -179,7 +179,7 @@ mod example {
         stack.startup(&crypto, &mut store).await?;
 
         // Wrap the KV BLOB store as a shared reference, so that it can be used both by `rs-matter` and the user
-        let kv = stack.kv(store)?;
+        let kv = stack.kv(store);
 
         // Run the Matter stack with our handler
         // Using `pin!` is completely optional, but reduces the size of the final future

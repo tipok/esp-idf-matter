@@ -169,7 +169,7 @@ mod example {
 
         {
             // Wrap the KV BLOB store as a shared reference, so that it can be used both by `rs-matter` and the user
-            let kv = stack.kv(store)?;
+            let kv = stack.kv(&mut store);
 
             // Run the Matter stack with our handler
             // Using `pin!` is completely optional, but reduces the size of the final future
@@ -187,7 +187,7 @@ mod example {
                 // Our `AsyncHandler` + `AsyncMetadata` impl
                 (NODE, handler),
                 // The Matter stack needs a blob store to store its state
-                &kv,
+                kv,
                 // No user future to run
                 (),
             ));
@@ -205,7 +205,7 @@ mod example {
         // by holding the BOOT pin low 3 or more seconds
         warn!("Resetting storage");
 
-        stack.reset(kv).await?;
+        stack.reset(store).await?;
 
         warn!("Rebooting...");
 
