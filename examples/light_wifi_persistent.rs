@@ -157,8 +157,8 @@ mod example {
             );
 
         // Create a KV BLOB store and load any previously saved state of `rs-matter`
-        let mut kv = EspKvBlobStore::new_default(nvs.clone())?;
-        stack.startup(&crypto, &mut kv).await?;
+        let mut store = EspKvBlobStore::new_default(nvs.clone())?;
+        stack.startup(&crypto, &mut store).await?;
 
         if stack.is_commissioned() {
             info!(
@@ -169,7 +169,7 @@ mod example {
 
         {
             // Wrap the KV BLOB store as a shared reference, so that it can be used both by `rs-matter` and the user
-            let kv = stack.create_shared_kv(&mut kv)?;
+            let kv = stack.kv(store)?;
 
             // Run the Matter stack with our handler
             // Using `pin!` is completely optional, but reduces the size of the final future

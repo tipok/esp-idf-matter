@@ -152,11 +152,11 @@ mod example {
         // Create a KV BLOB store and load any previously saved state of `rs-matter`
         // `EspKvBlobStore` saves to an ESP-IDF NVS namespace
         // However, for this demo and for simplicity, we use a dummy KV BLOB store that does nothing
-        let mut kv = DummyKvBlobStore;
-        stack.startup(&crypto, &mut kv).await?;
+        let mut store = DummyKvBlobStore;
+        stack.startup(&crypto, &mut store).await?;
 
         // Wrap the KV BLOB store as a shared reference, so that it can be used both by `rs-matter` and the user
-        let kv = stack.create_shared_kv(kv)?;
+        let kv = stack.kv(store)?;
 
         // Run the Matter stack with our handler
         // Using `pin!` is completely optional, but reduces the size of the final future
