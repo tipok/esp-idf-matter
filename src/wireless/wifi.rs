@@ -155,10 +155,10 @@ impl WifiCoex for EspMatterWifi<'_, '_> {
     {
         let modem = unsafe { self.modem.reborrow() };
 
-        #[cfg(not(esp32c6))]
+        #[cfg(not(any(esp32c6, esp32c5)))]
         let (wifi_p, bt_p) = modem.split();
 
-        #[cfg(esp32c6)]
+        #[cfg(any(esp32c6, esp32c5))]
         let (wifi_p, _, bt_p) = modem.split();
 
         let wifi = AsyncWifi::wrap(
