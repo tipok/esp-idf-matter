@@ -23,6 +23,11 @@ opt-level = "s"
 debug = true
 opt-level = "s"
 
+[patch.crates-io]
+esp-idf-svc = { git = "https://github.com/esp-rs/esp-idf-svc" }
+esp-idf-hal = { git = "https://github.com/esp-rs/esp-idf-hal" }
+esp-idf-sys = { git = "https://github.com/esp-rs/esp-idf-sys" }
+
 [features]
 default = ["async-io-mini", "rustcrypto"]
 
