@@ -15,7 +15,7 @@ use crate::ble::EspBtpGattContext;
 ))]
 pub use thread::*;
 
-#[cfg(esp_idf_comp_esp_wifi_enabled)]
+#[cfg(all(esp_idf_comp_esp_wifi_enabled, not(esp32h2)))]
 pub use wifi::*;
 
 #[cfg(all(
@@ -26,7 +26,7 @@ pub use wifi::*;
 ))]
 mod thread;
 
-#[cfg(esp_idf_comp_esp_wifi_enabled)]
+#[cfg(all(esp_idf_comp_esp_wifi_enabled, not(esp32h2)))]
 mod wifi;
 
 /// A type alias for an ESP-IDF Matter stack running over a wireless network (Wifi or Thread) and BLE.
