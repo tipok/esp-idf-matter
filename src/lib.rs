@@ -8,7 +8,6 @@
 #![warn(clippy::large_stack_frames)]
 #![warn(clippy::large_types_passed_by_value)]
 
-#[cfg(feature = "std")]
 #[allow(unused_imports)]
 #[macro_use]
 extern crate std;
@@ -25,16 +24,11 @@ extern crate alloc;
 ))]
 pub mod ble;
 pub mod error;
-#[cfg(feature = "std")]
 pub mod eth;
 pub mod matter;
 #[cfg(any(esp_idf_comp_mdns_enabled, esp_idf_comp_espressif__mdns_enabled))]
 pub mod mdns;
-#[cfg(all(
-    esp_idf_comp_esp_netif_enabled,
-    esp_idf_comp_esp_event_enabled,
-    feature = "std",
-))]
+#[cfg(all(esp_idf_comp_esp_netif_enabled, esp_idf_comp_esp_event_enabled,))]
 pub mod netif;
 #[cfg(esp_idf_comp_nvs_flash_enabled)]
 pub mod persist;
@@ -48,7 +42,6 @@ pub mod stack;
     not(esp_idf_btdm_ctrl_mode_br_edr_only),
     esp_idf_bt_enabled,
     esp_idf_bt_bluedroid_enabled,
-    feature = "std",
 ))]
 pub mod thread;
 #[cfg(all(
@@ -59,18 +52,14 @@ pub mod thread;
     not(esp_idf_btdm_ctrl_mode_br_edr_only),
     esp_idf_bt_enabled,
     esp_idf_bt_bluedroid_enabled,
-    feature = "std",
 ))]
 pub mod wifi;
 #[cfg(all(
-    not(esp32h2),
     not(esp32s2),
-    esp_idf_comp_esp_wifi_enabled,
     esp_idf_comp_esp_event_enabled,
     not(esp_idf_btdm_ctrl_mode_br_edr_only),
     esp_idf_bt_enabled,
     esp_idf_bt_bluedroid_enabled,
-    feature = "std",
 ))]
 pub mod wireless;
 
@@ -84,7 +73,6 @@ pub mod wireless;
 /// Note that `async-io-mini` is much less demanding.
 #[inline(never)]
 #[cold]
-#[cfg(feature = "std")]
 pub fn init_async_io(
     _mounted_event_fs: alloc::sync::Arc<esp_idf_svc::io::vfs::MountedEventfs>,
 ) -> Result<(), esp_idf_svc::sys::EspError> {
@@ -95,7 +83,6 @@ pub fn init_async_io(
 
 #[inline(never)]
 #[cold]
-#[cfg(feature = "std")]
 pub async fn init_async_io_async() {
     #[cfg(not(feature = "async-io-mini"))]
     {
